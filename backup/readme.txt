@@ -1,1 +1,1 @@
-dossier par défaut contenant les backups
+dossier de backup par dÃ©faut

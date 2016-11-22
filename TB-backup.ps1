@@ -46,8 +46,8 @@ $global:jobstatus	= "Reussi"
 $script:MailInfos = @()
 
 #Region External Functions
-. "$dp0\TB-BackupFunctions.ps1"
-. "$dp0\TB-LoggingFunctions.ps1"
+. "$dp0\modules\TB-BackupFunctions.ps1"
+. "$dp0\modules\TB-LoggingFunctions.ps1"
 #EndRegion
 
 # Region gestion des arguments

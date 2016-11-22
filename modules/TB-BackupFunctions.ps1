@@ -198,7 +198,7 @@ function BackupSites(){
 				}
 
 				#recupération des collections de site et backup si il existe des "managed paths" spécifiés "
-				if ($managedpath){
+				if (![string]::IsNullOrEmpty($managedpath)){
 					foreach ($mp in $managedpath.split(";")){
 						$sites = GetSiteCollectionList $backupmethod $sitecollectionurl $mp
 
@@ -278,7 +278,7 @@ function BackupASiteCollection($backupmethod, $sitecollectionurl, $backupfile){
 		else{
 			LoadPowershellForSharepoint
 			try{
-				LogWrite -message "début de Sauvegarde de $sitecollectionurl dans $backupfile via powershell" -severity 4
+				# LogWrite -message "début de Sauvegarde de $sitecollectionurl dans $backupfile via powershell" -severity 4
 				Backup-SPSite $sitecollectionurl -Path $backupfile -force -ea Stop
 				LogWrite -message "Sauvegarde de $sitecollectionurl dans $backupfile via powershell terminé." -severity 4
 				$script:MailInfos += ,("INFO","Sauvegarde du site $sitecollectionurl dans $backupfile terminé.")
@@ -287,7 +287,7 @@ function BackupASiteCollection($backupmethod, $sitecollectionurl, $backupfile){
 				$global:jobstatus	= "Echec"
 				$script:MailInfos += , ("ERREUR","Erreur lors de la sauvegarde de $sitecollectionurl")
 				$script:MailInfos += , ("DESCRIPTION","$_")
-				LogWrite -severity 3 -message " $_"
+				LogWrite -severity 3 -message "$_"
 			}
 		}
 }
@@ -314,7 +314,7 @@ function RestoreSites{
 	   #  ---
 	   #  --- Do a site collection crawl and backup if sitecollectionbackup=1 ---
 	   #  ---
-	   If ([string]::Compare($sitecollectionrestore, "0", $True)) 
+	   if ([string]::Compare($sitecollectionrestore, "0", $True)) 
 	   {
 		  LogWrite -message "Démarrage de la restauration de $backupfile dans $sitecollectionurl  "
 			
@@ -323,7 +323,7 @@ function RestoreSites{
 		  { 
 			
 			if ($backupmethod -eq "hive"){
-				LogWrite -severity 3 -message "methode non implémentée !!!!!."
+				LogWrite -severity 3 -message "methode non implémentée !."
 			}
 			else{
 				
@@ -391,7 +391,7 @@ function FullBackup{
 				if ($backupmethod -eq "hive"){			
 					Try{
 						& $ghive\BIN\stsadm.exe -o backup -directory $backupdestination"\" -backupmethod $catastrophicmethod -overwrite > $null
-						LogWrite -message "Sauvegarde de ferme stsadm effectué ! Dossier de destination $backupdestination\"
+						LogWrite -message "Sauvegarde de ferme stsadm effectué | Dossier de destination $backupdestination\"
 					}
 					Catch{
 						LogWrite -severity 3 -message " &_"
@@ -446,8 +446,9 @@ function BackupFolders(){
 	   #Read this folder parameters
 	   $id 					= $item.name
 	   $path 				= $item.path
-	   $backupdestination 	= $item.backupdestination
+	   $backupdestination 	= $item.backupdestination.replace("{dp0}",$dp0)
 	   $backupdestinationmaxkeepdays = $item.backupdestinationmaxkeepdays
+	   $folderbackup 		= $item.folderbackup
 	   
 	   $backupfilename = $id
 	   $guid = "-" + (Get-Date -Format "yyyyMMdd-HHmmss")
@@ -475,28 +476,30 @@ function BackupFolders(){
 	   }
 	
 		#  --- Do a folder backup ---
-		LogWrite -message "Début de sauvegarde du dossier $path dans $backupdestination\$fullfilename"
-		if(test-path $backupdestination)  
-		{ 
-			if(test-path $path)  
+		if ([string]::Compare($folderbackup, "0", $True)){
+			LogWrite -message "Début de sauvegarde du dossier $path dans $backupdestination\$fullfilename"
+			if(test-path $backupdestination)  
 			{ 
-				# gi $path | out-zip $backupdestination"\"$fullfilename $_ 
-				LogWrite -severity 4 -message " Sauvegarde terminée !" 
-				$dest = "$backupdestination\$fullfilename"
-				Create-7zip $path $dest
-				
-				$script:MailInfos += , ("INFO","Sauvegarde du dossier $path terminé dans $dest")
-			}  
+				if(test-path $path)  
+				{ 
+					# gi $path | out-zip $backupdestination"\"$fullfilename $_ 
+					LogWrite -severity 4 -message " Sauvegarde terminée !" 
+					$dest = "$backupdestination\$fullfilename"
+					Create-7zip $path $dest
+					
+					$script:MailInfos += , ("INFO","Sauvegarde du dossier $path terminé dans $dest")
+				}  
+				else 
+				{  
+					$global:jobstatus="Erreur"
+					LogWrite -severity 3 -message "Erreur : The folder Path $path doesn't exists for folder $id"
+				}
+			}
 			else 
 			{  
-				   $global:jobstatus="Erreur"
-				   LogWrite -severity 3 -message "Erreur : The folder Path $path doesn't exists for folder $id"
+				$global:jobstatus="Erreur"
+				LogWrite -severity 3 -message "Erreur : Le dossier de backup $backupdestination n'existe pas pour le dossier $id"
 			}
-		}
-		else 
-		{  
-			$global:jobstatus="Erreur"
-			LogWrite -severity 3 -message "Erreur : Le dossier de backup $backupdestination n'existe pas pour le dossier $id"
 		}	  
    }
 }
