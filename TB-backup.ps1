@@ -45,8 +45,39 @@ $global:log		  	= ""
 $global:jobstatus	= "Reussi"
 $script:MailInfos = @()
 
+#Region External Functions
+. "$dp0\TB-BackupFunctions.ps1"
+. "$dp0\TB-LoggingFunctions.ps1"
+#EndRegion
+
+# Region gestion des arguments
+# Write-Host -nonewline " $($args.Length) arguments : ";
+$gargs = @{}
+$i = 0
+foreach ($arg in $args)
+{
+  LogWrite -message "$arg |" -nonewline $true;
+  $arg=[string]$arg
+  if ($arg.Startswith("-")){
+	
+	$s = [string]$args[$i+1]
+	# LogWrite -message "$arg detecté, suivant : $s";
+	if ($s -eq ""){
+		$gargs[$arg] = $true
+	}
+	elseif ($s.Startswith("-")){
+		$gargs[$arg] = $true
+	}else{
+		$gargs[$arg] =  $($args[$i+1])
+	}
+  }
+ $i++
+}
+LogWrite -message " "
+#EndRegion
+
 #Récupération du fichier XML de configuration
-$configfromcmd = $args[0]
+$configfromcmd = $gargs["-configuration"]
 if(![string]::IsNullOrEmpty($configfromcmd)){
 	$ConfigurationfileName = $configfromcmd
 	$Configurationfile  = ".\$configfromcmd"
@@ -56,25 +87,15 @@ else{
 	$Configurationfile  = $dp0 + "\" + $ConfigurationfileName 
 }
 
-$argactions = $args[1]
-$ListActions = $argactions.split(";")
-
-#Create log file
-# New-Item $script:LogFile -type file -force
-
-#Region External Functions
-. "$dp0\TB-BackupFunctions.ps1"
-#EndRegion
-
 StartTracing
 $CurrentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 If (!$env:StartDate) {$env:StartDate = Get-Date}
-Write-Host -ForegroundColor White "-----------------------------------"
-Write-Host -ForegroundColor White "| Script de sauvegarde/restore Sharepoint |"
-Write-Host -ForegroundColor White "| par Thierry Buisson : www.thierrybuisson.fr |"
-Write-Host -ForegroundColor White "| Demarrage : $env:StartDate |"
-Write-Host -ForegroundColor White "| Utilisateur : $CurrentUser |"
-Write-Host -ForegroundColor White "-----------------------------------"
+LogWrite -message "-----------------------------------"
+LogWrite -message "| Script de sauvegarde/restore Sharepoint |"
+LogWrite -message "| par Thierry Buisson : www.thierrybuisson.fr |"
+LogWrite -message "| Demarrage : $env:StartDate |"
+LogWrite -message "| Utilisateur : $CurrentUser |"
+LogWrite -message "-----------------------------------"
 
 Try 
 {
@@ -82,16 +103,16 @@ Try
 		Throw "  - Fichier de configuration $Configurationfile introuvable"
 	}
 	
-	Write-Host -ForegroundColor white " - Le fichier de configuration est $ConfigurationfileName"
-	Write-Host -ForegroundColor white " - Lancement des actions [$argactions]"
+	LogWrite -message "Le fichier de configuration est $ConfigurationfileName"
+	LogWrite -message "Lancement des actions [$($gargs["-action"])]"
 	$xmlinput       = [xml] (get-content $Configurationfile)
 	$ghive = $xmlinput.configuration.farm.hive
 	
 	GetCurrentComputerConfiguration
 	
-	foreach ($action in $ListActions){
+	foreach ($action in $($gargs["-action"]).split(";")){
 		$a = $action.ToUpper()
-		Write-Host -ForegroundColor yellow " - Execution de la commande [$a]"
+		LogWrite -message  "Execution de la commande [$a]" -severity 2
 		
 		if ($a -eq "FULL"){
 			FullBackup
@@ -102,22 +123,22 @@ Try
 		elseif ($a -eq "RESTORE"){
 			RestoreSites
 		}
-		elseif ($a -eq "FOLDERS"){
+		elseif ($a -eq "FOLDER"){
 			BackupFolders
 		}
 		else{
-			Write-Host -ForegroundColor red " - Action [$action] inconnue, merci de préciser full, backup, restore ou folders"
+			LogWrite -severity 3 -message "Action [$action] inconnue, merci de préciser full, backup, restore ou folder"
 		}
 	}
 }
 Catch 
 {
 	# WriteLine
-	Write-Host -ForegroundColor Yellow " - Script arrété!"	
-	If ($_.FullyQualifiedErrorId -ne $null -and $_.FullyQualifiedErrorId.StartsWith(" - ")) 
+	LogWrite -severity 2 -message "Script arrété!"	
+	If ($_.FullyQualifiedErrorId -ne $null -and $_.FullyQualifiedErrorId.StartsWith("")) 
 	{
-		# Error messages starting with " - " are thrown directly from this script
-		Write-Host -ForegroundColor Red $_.FullyQualifiedErrorId
+		# Error messages starting with "" are thrown directly from this script
+		LogWrite -severity 3 -message $_.FullyQualifiedErrorId
 	}
 	Else
 	{
@@ -126,12 +147,12 @@ Catch
 		# | Format-List -Force
 	}
 	$env:EndDate = Get-Date
-	Write-Host -ForegroundColor White "-----------------------------------"
-	Write-Host -ForegroundColor White "| Script de sauvegarde/restore Sharepoint |"
-	Write-Host -ForegroundColor White "| par Thierry Buisson : www.thierrybuisson.fr |"
-	Write-Host -ForegroundColor White "| Demarre le : $env:StartDate |"
-	Write-Host -ForegroundColor White "| Arrete :    $env:EndDate |"
-	Write-Host -ForegroundColor White "-----------------------------------"
+	LogWrite -message "-----------------------------------"
+	LogWrite -message "| Script de sauvegarde/restore Sharepoint |"
+	LogWrite -message "| par Thierry Buisson : www.thierrybuisson.fr |"
+	LogWrite -message "| Demarre le : $env:StartDate |"
+	LogWrite -message "| Arrete :    $env:EndDate |"
+	LogWrite -message "-----------------------------------"
 }
 Finally 
 {

@@ -1,10 +1,4 @@
 ﻿# http://9to5it.com/powershell-logging-function-library/
-
-$logDayFormat = $(Get-Date -Format yyyy-MM-dd)
-$LogFolder=$gConf.Get_Item("cerib.log.path")
-
-$gCurrentSession = $env:CURRENTSESSIONID
-$gLogfile = "$LogFolder\"+$computername+"_$logDayFormat.log"
 function LogWrite{
 	Param (
 		[Parameter(Mandatory=$true)]
@@ -13,8 +7,7 @@ function LogWrite{
 		[Parameter(Mandatory=$false)]
 		[string]$component,
 		
-		#The severity (1- Information, 2- Warning, 3 - Error)
-		# TBUI Added 4 - Debug, 5 - Verbose) 
+		#The severity (1- Information, 2- Warning, 3 - Error, 4 - Info, 5 - Debug)
 		[parameter(Mandatory=$false)] 
 		[ValidateRange(1,5)] 
 		[Single]$severity =1,
@@ -30,7 +23,7 @@ function LogWrite{
       
 	)
 		
-	$Acolor=@("magenta","white","yellow","red","gray","gray")
+	$Acolor=@("magenta","white","yellow","red","green","gray")
 	if ($color){
 		$scolor=$color
 	}else{$scolor=$Acolor[$severity]}
@@ -52,8 +45,7 @@ function LogTrace(){
 		[Parameter(Mandatory=$false)]
 		[string]$component,
 		
-		#The severity (1- Information, 2- Warning, 3 - Error)
-		# TBUI Added 4 - Debug, 5 - Verbose) 
+		#The severity (1- Information, 2- Warning, 3 - Error, 4 - Info, 5 - Debug) 
 		[parameter(Mandatory=$false)] 
 		[ValidateRange(1,5)] 
 		[Single]$severity =1

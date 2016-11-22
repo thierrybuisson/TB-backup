@@ -69,22 +69,21 @@ function SendReportEmail{
 	$htmlBody+="</body>"
 	$htmlBody+="</html>"
 	
-	# Send-MailMessage -To $toAddress -SmtpServer $smtpserver -subject "$farmName / $status / sauvegarde termine sur $COMPUTERNAME" -From $fromemail -Body "TEST" -BodyAsHtml -Encoding $encodingMail -Attachments $script:LogFile
-	If (![string]::IsNullOrEmpty($smtpserver))
+	if (![string]::IsNullOrEmpty($smtpserver))
 	{
 		Try{
-			# Write-Host -ForegroundColor gray " - $suj  "
-			# Write-Host -ForegroundColor gray " - $htmlBody "
+			# Write-Host -ForegroundColor gray "$suj  "
+			# Write-Host -ForegroundColor gray "$htmlBody "
 			
-			Write-Host -ForegroundColor White -nonewline " - Envoie du rapport par email de $fromemail à $toemail Statut $status"
+			LogWrite -message "Envoie du rapport par email de $fromemail à $toemail Statut $status" -nonewline $true
 	
 			Send-MailMessage -To $toAddress -SmtpServer $smtpserver -subject $suj -From $fromemail -Body $htmlBody -BodyAsHtml -Encoding $encodingMail -Attachments $script:LogFile
-			Write-Host -ForegroundColor green " Réussi"
+			LogWrite -message  "Réussi" -severity 4
 		}
 		Catch{
 			$global:jobstatus	= "Echec"
-			Write-Host -ForegroundColor red  " echec !"
-			Write-Host -ForegroundColor red  " $_"
+			LogWrite -severity 3 -message " echec !"
+			LogWrite -severity 3 -message " $_"
 		}
    }
 }
@@ -111,12 +110,12 @@ function GetCurrentComputerConfiguration{
 
 	If ($QueryOS.contains("2008") -or $QueryOS.contains("Vista"))
 	{
-		Write-Host -ForegroundColor White " - Windows Server 2008 ou Vista detecté"
+		LogWrite -message "Windows Server 2008 ou Vista detecté"
 	}
 
 	If ($QueryOS.contains("2003"))
 	{
-		Write-Host -ForegroundColor White " - Windows Server 2003 detecté"
+		LogWrite -message "Windows Server 2003 detecté"
 	}
 }
 
@@ -126,7 +125,7 @@ function Create-7zip([String] $aDirectory, [String] $OutPutName){
 	$aZipfile = $OutPutName
     $arguments = @("a", "-tzip", "$aZipfile", "$aDirectory")
 	# $arguments
-	Write-Host -ForegroundColor White " - 7Zip de $aDirectory dans $OutPutName ..."
+	LogWrite -message "7Zip de $aDirectory dans $OutPutName ..." -severity 5
 	
     & $pathToZipExe $arguments
 }
@@ -136,7 +135,7 @@ function Create-7zip([String] $aDirectory, [String] $OutPutName){
 function BackupSites(){
 	#Go through each site-configuration in the file
 	$backupmethod  =  $xmlinput.configuration.farm.backupMethod
-	Write-Host -ForegroundColor Yellow " - Début de la sauvegarde des collections de sites. Method $backupmethod"
+	LogWrite -severity 2 -message "Début de la sauvegarde des collections de sites. Method $backupmethod"
 	
 	$nodelist = $xmlinput.configuration.backup
 	
@@ -148,14 +147,14 @@ function BackupSites(){
 	   $sitecollectionurl = $item.sitecollectionurl
 	   $managedpath = $item.managedpath
 	   
-	   $backupdestination = $item.backupdestination
+	   $backupdestination = $item.backupdestination.replace("{dp0}",$dp0)
 	   $backupdestinationmaxkeepdays = $item.backupdestinationmaxkeepdays
 	   $zipbackup = $item.zipbackup
 	   
 	   $backupfilename = $id
 	    
 	   #Print the configuration parameter-details
-	   Write-Host -ForegroundColor White " - Sauvegarde du site $id"
+	   LogWrite -message "Sauvegarde du site name=""$id"" "
 
 	   #  ---
 	   #  --- Delete old files from backupdestination if backupdestinationmaxkeepdays<>0 ---
@@ -167,12 +166,12 @@ function BackupSites(){
 		  { 
 			& dir $backupdestination |? {$_.CreationTime -lt (get-date).AddDays(-$backupdestinationmaxkeepdays) -and $_.name.StartsWith($backupfilename)} | del -force
 			# & dir $backupdestination |? {$_.CreationTime -lt (get-date).AddDays(-$backupdestinationmaxkeepdays) -and $_.name.EndsWith('.bak')} | del -force
-			Write-Host -ForegroundColor White "  - Fichiers plus vieux de $backupdestinationmaxkeepdays jours dans $backupdestination supprimés" 
+			LogWrite -message "Fichiers plus vieux de $backupdestinationmaxkeepdays jours dans $backupdestination supprimés" 
 		  }  
 		  else 
 		  {  
 			 $global:jobstatus="Erreur"
-			 Write-Host -ForegroundColor red "  - Erreur : Le chemin de sauvegarde $backupdestination n'existe pas pour le site $id"
+			 LogWrite -message "Erreur : Le chemin de sauvegarde $backupdestination n'existe pas pour le site $id" -severity 3
 		  }
 	   }
 
@@ -181,7 +180,7 @@ function BackupSites(){
 	   #  ---
 	   If ([string]::Compare($sitecollectionbackup, "0", $True)) 
 	   {
-		  Write-Host -ForegroundColor White " - Démarrage de la sauvegarde de $sitecollectionurl"
+		  LogWrite -message "Démarrage de la sauvegarde de $sitecollectionurl"
 			
 		  #Perform backup if backup destination path is valid
 		  if(test-path $backupdestination)  
@@ -223,22 +222,21 @@ function BackupSites(){
 		  else 
 		  {  
 			 $global:jobstatus="Erreur"
-			 Write-Host -ForegroundColor red "  - Erreur: Le dossier $backupdestination n'existe pas pour le site $id"
+			 LogWrite -severity 3 -message "Erreur: Le dossier $backupdestination n'existe pas pour le site $id"
 			 $script:MailInfos += ,("ERREUR","Le dossier $backupdestination n'existe pas pour le site $id.")
 		  }
 	   }
 	   else
 	   {
-			Write-Host -ForegroundColor red "   - Pas de backup de la collection de site $sitecollectionurl"
+			LogWrite -severity 3 -message "Pas de backup de la collection de site $sitecollectionurl"
 	   }
 	}
 }
 
+# recupère la liste des collections de site en fonction d'un managed path
 function GetSiteCollectionList ($backupmethod,$sitecol,$managedpath){
 	
 	$a=@()
-	# $a+=$sitecol
-	
 	try{
 
 		if ($managedpath -eq "/"){
@@ -247,17 +245,16 @@ function GetSiteCollectionList ($backupmethod,$sitecol,$managedpath){
 		else{
 			LoadPowershellForSharepoint
 			$SPSiteFilter =$sitecol+$managedpath
-			Write-Host -ForegroundColor Yellow " - récupération des collections de site de $SPSiteFilter"
+			LogWrite -severity 2 -message "récupération des collections de site de $SPSiteFilter"
 			$Allsites = Get-SPWebApplication $sitecol | Get-SPSite -Limit ALL | Select URL
 
 			foreach ($spsite in $Allsites){
 				$u = $spsite.Url
 				if (($u.StartsWith($SPSiteFilter)) -and ($u -ne $sitecol)){
-					# Write-Host -ForegroundColor Yellow " - ajout de $u"
+					# LogWrite -severity 4 -message "ajout de $u"
 					$a+=$u
 				}
 			}
-
 		}
 		
 		$script:MailInfos += ,("INFO","récuperation des collections de site de $sitecol")
@@ -266,36 +263,37 @@ function GetSiteCollectionList ($backupmethod,$sitecol,$managedpath){
 		$global:jobstatus	= "Echec"
 		$script:MailInfos += , ("ERREUR","Erreur lors de la récuperation des  $sitecollectionurl")
 		$script:MailInfos += , ("DESCRIPTION","$_")
-		Write-Host -ForegroundColor red  " $_"
+		LogWrite -severity 3 -message "$_"
 	}
 		
 	return $a
 
 }
 
-function BackupASiteCollection($backupmethod,$sitecollectionurl,$backupfile){
+function BackupASiteCollection($backupmethod, $sitecollectionurl, $backupfile){
 		if ($backupmethod -eq "hive"){
 			& $ghive\BIN\stsadm.exe -o backup -url $sitecollectionurl -filename $backupfile -overwrite
-			Write-Host -ForegroundColor White "  - Sauvegarde du site $sitecollectionurl via stsadm terminé." 
+			LogWrite -message "Sauvegarde du site $sitecollectionurl via stsadm terminé." -severity 4 
 		}
 		else{
 			LoadPowershellForSharepoint
 			try{
+				LogWrite -message "début de Sauvegarde de $sitecollectionurl dans $backupfile via powershell" -severity 4
 				Backup-SPSite $sitecollectionurl -Path $backupfile -force -ea Stop
-				Write-Host -ForegroundColor green "  - Sauvegarde de $sitecollectionurl dans $backupfile via powershell terminé."
+				LogWrite -message "Sauvegarde de $sitecollectionurl dans $backupfile via powershell terminé." -severity 4
 				$script:MailInfos += ,("INFO","Sauvegarde du site $sitecollectionurl dans $backupfile terminé.")
 			}
 			catch{
 				$global:jobstatus	= "Echec"
 				$script:MailInfos += , ("ERREUR","Erreur lors de la sauvegarde de $sitecollectionurl")
 				$script:MailInfos += , ("DESCRIPTION","$_")
-				Write-Host -ForegroundColor red  " $_"
+				LogWrite -severity 3 -message " $_"
 			}
 		}
 }
 
 function RestoreSites{
-	Write-Host -ForegroundColor Yellow " - Début de la restauration des sites... "
+	LogWrite -severity 3 -message "Début de la restauration des sites... "
 	
 	$nodelist = $xmlinput.configuration.restore
 	
@@ -311,40 +309,40 @@ function RestoreSites{
 	   $backupfile = $backupfile.replace("{dp0}",$dp0)
 
 	   #Print the configuration parameter-details
-	   # Write-Host -ForegroundColor White " - Restauration du site $id"
+	   # LogWrite -message "Restauration du site $id"
 	  
 	   #  ---
 	   #  --- Do a site collection crawl and backup if sitecollectionbackup=1 ---
 	   #  ---
 	   If ([string]::Compare($sitecollectionrestore, "0", $True)) 
 	   {
-		  Write-Host -ForegroundColor White "  - Démarrage de la restauration de $backupfile dans $sitecollectionurl  "
+		  LogWrite -message "Démarrage de la restauration de $backupfile dans $sitecollectionurl  "
 			
 		  #Perform backup if backup destination path is valid
 		  if(test-path $backupfile)  
 		  { 
 			
 			if ($backupmethod -eq "hive"){
-				Write-Host -ForegroundColor red "  - methode non implémentée !!!!!."
+				LogWrite -severity 3 -message "methode non implémentée !!!!!."
 			}
 			else{
 				
 				Try{
 					LoadPowershellForSharepoint
 					Restore-SPSite $sitecollectionurl -Path $backupfile -force -ea Stop
-					Write-Host -ForegroundColor green "  - Restauration du site via powershell terminé."
+					LogWrite -severity 4 -message "Restauration du site via powershell terminé." 
 							
 					$tabadmins = $sitecollectionadmins.split(";")
 					
 					foreach ($scadmin in $tabadmins) {
 						Set-SPSite -Identity $sitecollectionurl -SecondaryOwnerAlias $scadmin
-						Write-Host -ForegroundColor white "  - Affectation de l'administrateur de collection de site $scadmin."
+						LogWrite -message "Affectation de l'administrateur de collection de site $scadmin."
 					}
 					$script:MailInfos += , ("INFO","Restauration du site $sitecollectionurl terminé.")
 				}
 				Catch{
 					$global:jobstatus	= "Echec"
-					Write-Host -ForegroundColor red  " $_"
+					LogWrite -severity 3 -message " $_"
 					$script:MailInfos += ,("ERREUR","Erreur de restauration du site $sitecollectionurl")
 					$script:MailInfos += ,("DESCRIPTION","$_")
 				}
@@ -355,16 +353,14 @@ function RestoreSites{
 		  else 
 		  {  
 			 $global:jobstatus="Erreur"
-			 Write-Host -ForegroundColor red "  - Erreur: Le fichier $backupfile n'existe pas pour restaurer le site $id"
+			 LogWrite -severity 3 -message "Erreur: Le fichier $backupfile n'existe pas pour restaurer le site $id"
 			 $script:MailInfos += ,("ERREUR","Le fichier $backupfile n'existe pas pour restaurer le site $id")
 		  }
 	   }
 	   else
 	   {
-			Write-Host -ForegroundColor red "   - Pas de restauration de la collection de site $sitecollectionurl"
+			LogWrite -severity 3 -message "Pas de restauration de la collection de site $sitecollectionurl"
 	   }
-
-	  
 	}
 }
 
@@ -381,24 +377,24 @@ function FullBackup{
 	   If (![string]::IsNullOrEmpty($backupdestination)){
 		   If ([string]::Compare($catastrophicbackup, "0", $True)) 
 		   {
-			  Write-Host -ForegroundColor yellow " - Début de la sauvegarde complète. Method $backupmethod Destination $backupdestination"
+			  LogWrite -severity 3 -message "Début de la sauvegarde complète. Method $backupmethod Destination $backupdestination"
 			  
 			  #Perform backup if backup destination path is valid
 			  if(Test-Path $backupdestination)  
 			  { 
 				#added by TBUISSON - Remove directory content before backup
 				#Find all directories starting with spbr* then delete it recursively
-				Write-Host -ForegroundColor White "  - Suppression des dossiers commencant par spbr* dans $backupdestination\"
+				LogWrite -message "Suppression des dossiers commencant par spbr* dans $backupdestination\"
 				get-childitem $backupdestination"\" -include spbr* -recurse -force | Where-Object { $_.PSIsContainer } | Where-Object { $_.LastWriteTime -lt (get-date).AddDays(-$backupdestinationmaxkeepdays)} | Remove-Item -Force –Recurse
 				
-				Write-Host -ForegroundColor White "  - Lancement de la sauvegarde de ferme complète $catastrophicmethod dans $backupdestination\"
+				LogWrite -message "Lancement de la sauvegarde de ferme complète $catastrophicmethod dans $backupdestination\"
 				if ($backupmethod -eq "hive"){			
 					Try{
 						& $ghive\BIN\stsadm.exe -o backup -directory $backupdestination"\" -backupmethod $catastrophicmethod -overwrite > $null
-						Write-Host -ForegroundColor White "  - Sauvegarde de ferme stsadm effectué ! Dossier de destination $backupdestination\"
+						LogWrite -message "Sauvegarde de ferme stsadm effectué ! Dossier de destination $backupdestination\"
 					}
 					Catch{
-						Write-Host -ForegroundColor Red " &_"
+						LogWrite -severity 3 -message " &_"
 					}
 				}
 				else{
@@ -406,14 +402,14 @@ function FullBackup{
 						LoadPowershellForSharepoint
 						
 						Backup-SPFarm -Directory $backupdestination"\" -BackupMethod $catastrophicmethod -ea Stop
-						Write-Host -ForegroundColor White "  - Sauvegarde de ferme powershell effectué ! Dossier de destination $backupdestination\"
+						LogWrite -message "Sauvegarde de ferme powershell effectué ! Dossier de destination $backupdestination\"
 						$script:MailInfos += , ("INFO","Backup complet de la ferme terminé.")
 					}
 					catch{
 						$global:jobstatus	= "Echec"
 						$script:MailInfos += , ("ERREUR","Erreur lors de la sauvegarde complète")
 						$script:MailInfos += , ("DESCRIPTION","$_")
-						Write-Host -ForegroundColor red  " $_"
+						LogWrite -severity 3 -message " $_"
 					}
 				}
 				
@@ -421,7 +417,7 @@ function FullBackup{
 			  else 
 			  {  
 				 $global:jobstatus="Erreur"
-				 Write-Host -ForegroundColor Red " - Erreur : Le dossier de sauvegarde $backupdestination n'existe pas"
+				 LogWrite -severity 3 -message "Erreur : Le dossier de sauvegarde $backupdestination n'existe pas"
 			  }
 	   }
 	}
@@ -444,7 +440,7 @@ function BackupFolders(){
 	$nodelist = $xmlinput.configuration.folder
 	$nbr = $nodelist.length
 	
-	Write-Host -ForegroundColor Yellow " - Début de la sauvegarde de(s) $nbr dossier(s) "
+	LogWrite -severity 3 -message "Début de la sauvegarde de(s) $nbr dossier(s) "
 	
 	foreach ($item in $nodelist) {
 	   #Read this folder parameters
@@ -459,7 +455,7 @@ function BackupFolders(){
 	   #Full backup file name
 	   $fullfilename = $backupfilename+"-folder"+$guid+".zip"
 	   
-	   Write-Host -ForegroundColor white "  - Chargement de $id"
+	   LogWrite -message "Chargement de $id"
 	   # $item
 			   
 	   #  --- Delete old files from backupdestination if backupdestinationmaxkeepdays<>0 ---
@@ -469,23 +465,23 @@ function BackupFolders(){
 		  if(test-path $backupdestination)  
 		  { 
 			& dir $backupdestination |? {$_.CreationTime -lt (get-date).AddDays(-$backupdestinationmaxkeepdays) -and $_.name.StartsWith($backupfilename)} | del -force
-			Write-Host -ForegroundColor white "   - Fichiers plus vieux de $backupdestinationmaxkeepdays jours supprimés"
+			LogWrite -message "Fichiers plus vieux de $backupdestinationmaxkeepdays jours supprimés"
 		  }  
 		  else 
 		  {  
 			 $global:jobstatus="Erreur"
-			 Write-Host -ForegroundColor red "   - Erreur : Le dossier de backup $backupdestination n'existe pas pour le dossier $id"
+			 LogWrite -severity 3 -message "Erreur : Le dossier de backup $backupdestination n'existe pas pour le dossier $id"
 		  }
 	   }
 	
 		#  --- Do a folder backup ---
-		Write-Host -ForegroundColor white "   - Début de sauvegarde du dossier $path dans $backupdestination\$fullfilename"
+		LogWrite -message "Début de sauvegarde du dossier $path dans $backupdestination\$fullfilename"
 		if(test-path $backupdestination)  
 		{ 
 			if(test-path $path)  
 			{ 
 				# gi $path | out-zip $backupdestination"\"$fullfilename $_ 
-				Write-Host -ForegroundColor green "   - Sauvegarde terminée !" 
+				LogWrite -severity 4 -message " Sauvegarde terminée !" 
 				$dest = "$backupdestination\$fullfilename"
 				Create-7zip $path $dest
 				
@@ -494,13 +490,13 @@ function BackupFolders(){
 			else 
 			{  
 				   $global:jobstatus="Erreur"
-				   Write-Host -ForegroundColor red  "   - Erreur : The folder Path $path doesn't exists for folder $id"
+				   LogWrite -severity 3 -message "Erreur : The folder Path $path doesn't exists for folder $id"
 			}
 		}
 		else 
 		{  
 			$global:jobstatus="Erreur"
-			Write-Host -ForegroundColor red "   - Erreur : Le dossier de backup $backupdestination n'existe pas pour le dossier $id"
+			LogWrite -severity 3 -message "Erreur : Le dossier de backup $backupdestination n'existe pas pour le dossier $id"
 		}	  
    }
 }
