@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<configuration version="2.0">
+	<farm>
+		<!-- Nom de la ferme courante -->
+		<name>PRODUCTION</name>
+		<!-- Serveur Mail pour envoie à la fin du script, si absent, pas de mail --> 
+		<smtpserver>smtp4.smtpft.fr</smtpserver>
+		<!-- Expediteur du mail-->
+		<fromemail>thierrybuisson@live.fr</fromemail>
+		<!-- Destinataires, separés par des , -->
+		<toemail>thierrybuisson</toemail>
+		<!-- Dossier d'installation de 7zip (vide si non installé)-->
+		<zipFolder>C:\Program Files\7-Zip</zipFolder>
+		<!-- Dossier temporaire, non utilisé pour l'instant-->
+		<tempFolder></tempFolder>
+		<!-- Methode de Backup, peut être "hive" ou "powershell" -->
+		<backupMethod>powershell</backupMethod>
+		<!-- Dossier d'installation de Sharepoint (sans le \bin), utilisé pour la methode de backup hive -->
+		<hive>C:\Program Files\Common Files\Microsoft Shared\web server extensions\14</hive>
+   </farm>
+   <!-- la tag <full correspond au backup complet -->
+   <full name="Backup_complet">
+		<!-- doit être à 1 pour activer cette sauvegarde -->
+		<catastrophicbackup>0</catastrophicbackup>
+		<!-- methode de sauvegarde full -->
+		<catastrophicmethod>full</catastrophicmethod>
+		<!-- dossier de destination -->
+		<backupdestination>\\NASBACKUP\@backup</backupdestination>
+		<!-- delai de retention des dossier spbrXXXX -->
+		<backupdestinationmaxkeepdays>5</backupdestinationmaxkeepdays>
+   </full>
+   <site name="SP2013_Portal001">
+   	<!-- doit être à 1 pour activer cette sauvegarde -->
+	<sitecollectionbackup>1</sitecollectionbackup>
+	<!-- URL de la collection de site -->
+	<sitecollectionurl>http://10.197.71.171/sites/mysite/</sitecollectionurl>
+	<!-- optionnel si vous le souhaitez, mettez les managed path séparés par des ; pour ajouter les backups des sous collections de site -->
+	<managedpath>projets;sites</managedpath>
+	<!-- mettez à 1 si vous souhaitez zipper le backup -->
+	<zipbackup>1</zipbackup>
+	<!-- repertoire de destination-->
+	<backupdestination>d:\@backup</backupdestination>
+	<!-- nombre de jours de rétention -->
+	<backupdestinationmaxkeepdays>5</backupdestinationmaxkeepdays>
+   </site>
+   <folder name="Temp" description="Dossier temporaire">
+	<path>C:\inetpub\wwwroot</path>
+	<backupdestination>d:\@BACKUP</backupdestination>
+	<backupdestinationmaxkeepdays>5</backupdestinationmaxkeepdays>
+   </folder>
+</configuration>

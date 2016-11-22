@@ -1,0 +1,16 @@
+# Logs
+logs
+*.rtf
+
+# Backup files
+*.bak
+*.zip
+
+# Configuration Files
+*.xml
+!TB-backup.xml
+
+#CMD files
+*.CMD
+!backup.cmd
+!restore.cmd
