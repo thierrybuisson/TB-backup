@@ -1,0 +1,69 @@
+<?xml version="1.0" ?>
+<configuration version="2.0">
+	<farm>
+		<!-- Nom de la ferme courante -->
+		<name>PRODUCTION</name>
+		<!-- Serveur Mail pour envoie à la fin du script, si absent, pas de mail --> 
+		<smtpserver>smtp4.smtp.fr</smtpserver>
+		<!-- Expediteur du mail-->
+		<fromemail>thierrybuisson@live.fr</fromemail>
+		<!-- Destinataires, separés par des , -->
+		<toemail>thierrybuisson@live.fr</toemail>
+		<!-- Dossier d'installation de 7zip (vide si non installé)-->
+		<zipFolder>C:\Program Files\7-Zip</zipFolder>
+		<!-- Dossier temporaire, non utilisé pour l'instant-->
+		<tempFolder></tempFolder>
+		<!-- Methode de Backup, peut être "hive" ou "powershell" -->
+		<backupMethod>powershell</backupMethod>
+		<!-- Dossier d'installation de Sharepoint (sans le \bin), utilisé pour la methode de backup hive -->
+		<hive>C:\Program Files\Common Files\Microsoft Shared\web server extensions\14</hive>
+   </farm>
+   <!-- la tag <full correspond au backup complet -->
+   <full name="Backup_complet">
+		<!-- doit être à 1 pour activer cette sauvegarde -->
+		<catastrophicbackup>0</catastrophicbackup>
+		<!-- methode de sauvegarde full -->
+		<catastrophicmethod>full</catastrophicmethod>
+		<!-- dossier de destination -->
+		<backupdestination>\\NASBACKUP\@backup</backupdestination>
+		<!-- delai de retention des dossier spbrXXXX -->
+		<backupdestinationmaxkeepdays>5</backupdestinationmaxkeepdays>
+   </full>
+   <!-- la tag <full correspond au backup de collection de site -->
+   <backup name="SP2013_Portal001">
+		<!-- doit être à 1 pour activer cette sauvegarde -->
+		<sitecollectionbackup>1</sitecollectionbackup>
+		<!-- URL de la collection de site -->
+		<sitecollectionurl>http://10.197.71.171/sites/mysite/</sitecollectionurl>
+		<!-- optionnel si vous le souhaitez, mettez les managed path séparés par des ; pour ajouter les backups des sous collections de site -->
+		<managedpath>sites</managedpath>
+		<!-- mettez à 1 si vous souhaitez zipper le backup -->
+		<zipbackup>1</zipbackup>
+		<!-- repertoire de destination -->
+		<backupdestination>.\backup</backupdestination>
+		<!-- nombre de jours de rétention -->
+		<backupdestinationmaxkeepdays>5</backupdestinationmaxkeepdays>
+   </backup>
+   <!-- la tag <restore correspond au restore de collection de site -->
+   <restore name="SP2013_Portal002">
+		<!-- doit être à 1 pour activer ce restore sauvegarde -->
+		<sitecollectionrestore>1</sitecollectionrestore>
+		<!-- URL de la collection de site -->
+		<sitecollectionurl>http://cerib002/sites/template03/</sitecollectionurl>
+		<!-- N/A non utilisé -->
+		<unzipbackup>0</unzipbackup>
+		<!-- chemin du fichier ervant au restore {dp0} est le dossier courant -->
+		<backupsource>{dp0}\backup\FRORLVSP005-20150608_151003_tpl02.bak</backupsource>
+		<!-- liste des adminsitrateurs de collection de site séparés par des ; -->
+		<administrators>DOMAIN\user1;DOMAIN\user2</administrators>
+   </restore>
+    <!-- la tag <folder correspond au backup d'un dossier au format zip -->
+   <folder name="wwwroot" description="Dossier temporaire">
+	<!-- chemin du dossier à sauvegarder -->
+	<path>C:\inetpub\wwwroot</path>
+	<!-- destination du dossier à sauvegarder-->
+	<backupdestination>d:\@BACKUP</backupdestination>
+	<!-- nombre de jours de rétention -->
+	<backupdestinationmaxkeepdays>5</backupdestinationmaxkeepdays>
+   </folder>
+</configuration>

@@ -13,3 +13,4 @@
 *.CMD
 !backup.cmd
 !restore.cmd
+!*.example.xml
